@@ -2,3 +2,8 @@ PyQt6==6.6.0
 asyncio-udp==0.1.0
 tftpy==0.8.2
 python-dateutil==2.8.2
+
+asyncio>=3.4.3
+netaddr>=0.8.0
+colorlog>=6.7.0
+psutil>=5.8.0

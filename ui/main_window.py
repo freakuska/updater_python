@@ -1,5 +1,5 @@
 import os
-from PyQt6 import QtWidgets, QtCore
+from PyQt6 import QtWidgets, QtCore, QtGui
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
