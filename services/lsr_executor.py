@@ -47,3 +47,11 @@ class LsrExecutor:
         # Формируем: "exe 2561 eeprom iwdg rst 0"
 
         return self.udp.send_command(command)
+
+    def reset_eeprom(self, lsr_id: str) -> str:
+        command = f"exe {lsr_id} eeprom iwdg rst 3600"
+        return self.udp.send_command(command)
+
+    def reset_iwdg(self, lsr_id: str) -> str:
+        command = f"exe {lsr_id} iwdg"
+        return self.udp.send_command(command)

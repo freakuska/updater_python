@@ -10,7 +10,7 @@ class FirmwareInfo:
     file_name: str = ""
     file_size: int = 0
     versions: str = ""
-    created_date: datetime = None 
+    created_date: datetime = None
     modified_date: datetime = None
     md5_hash: str = ""
     is_valid: bool = False
@@ -25,15 +25,15 @@ class FirmwareInfo:
                 # Проверяем существует ли файл
                 if os.path.exists(self.file_path):
                     stat = os.stat(self.file_path)
-                    
+
                     self.file_size = stat.st_size
-                    
+
                     self.created_date = datetime.fromtimestamp(stat.st_ctime)
 
                     self.modified_date = datetime.fromtimestamp(stat.st_mtime)
-                    
+
                     self.is_valid = self.file_size > 0
-                    
+
                     self.md5_hash = self._calculate_md5()
             except Exception as e:
                 print(f"❌ Ошибка при загрузке информации о файле: {e}")
@@ -46,7 +46,7 @@ class FirmwareInfo:
             parts = name.split('-')
 
             if len(parts) >= 2 and len(parts[1]) >= 8:
-                date_str = parts[1][:8]  
+                date_str = parts[1][:8]
                 return f"{date_str[0:4]} - {date_str[4:6]} - {date_str[6:8]}"
         except:
             pass
@@ -72,3 +72,19 @@ class FirmwareInfo:
     def __str__(self):
         """Текстовое представление"""
         return f"{self.file_name} ({self.get_size_in_mb():.2f} MB) - Version: {self.version}"
+
+    def validate(self) -> tuple:
+        """Проверить что файл прошивки валидный"""
+        if not self.is_valid:
+            return False, "Файл не существует или пуст"
+
+        if self.file_size < 1024:
+            return False, "Файл слишком маленький (<1 KB)"
+
+        if self.file_size > 1024 * 1024 * 10:
+            return False, "Файл слишком большой (>10 MB)"
+
+        if not self.md5_hash:
+            return False, "Не удалось вычислить MD5"
+
+        return True, "OK"

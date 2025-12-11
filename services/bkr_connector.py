@@ -76,7 +76,7 @@ class BkrConnector:
             for lsr in lsr_list:
                 self._log(f"  └─ {lsr.id} ({lsr.ip_address}) v{lsr.firmware_version}")
 
-                return lsr_list
+            return lsr_list
 
         except Exception as e:
             self._log(f"❌ Ошибка при подключении: {e}")

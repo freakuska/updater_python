@@ -30,18 +30,12 @@ class UpdService:
             raise
 
     def send_command(self, command: str) -> str:
-        """
-        Отправить команду и получить ответ
-
-        command: команда для отправки (например "phy stop")
-        return: ответ от БКР (строка текста)
-        """
 
         if not self.socket:
             raise RuntimeError("Сокет не инициализирован")
 
         try:
-            data = (command + "/n").encode('utf-8')
+            data = (command + "\n").encode('utf-8')
 
             #отправка команды на БКР
             self.socket.sendto(data, (self.host, self.port))
@@ -59,7 +53,7 @@ class UpdService:
             return result
 
         except socket.timeout:
-            logger.error(f"❌ Ошибка при отправке команды: {e}")
+            logger.error(f"❌ Ошибка при отправке команды: {command}")
             return "TIMEOUT"
 
         except Exception as e:
