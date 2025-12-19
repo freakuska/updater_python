@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class UpdService:
     """UDP сервис для подключения к БКР"""
 
-    def __init__(self, host: str, port: int, timeout: int = 5):
+    def __init__(self, host: str, port: int, timeout: int = 10):
         self.host = host
         self.port = port
         self.timeout = timeout

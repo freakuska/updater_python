@@ -1,3 +1,4 @@
+import asyncio
 import tkinter as tk
 from ui.main_window import MainWindow
 

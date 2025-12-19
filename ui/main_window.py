@@ -4,6 +4,7 @@ from tkinter import ttk, filedialog, messagebox
 import asyncio
 import threading
 from pathlib import Path
+import queue
 
 from services.bkr_connector import BkrConnector
 from services.firmware_updater import FirmwareUpdaterService
@@ -23,7 +24,22 @@ class MainWindow:
         self.selected_lsr = None
         self.lsr_list = []
 
+        self.log_queue = queue.Queue()
+        self.process_log_queue()
+
         self._create_widgets()
+
+    def process_log_queue(self):
+        """Обработка логов из очереди"""
+        try:
+            while True:
+                message = self.log_queue.get_nowait()
+                self.log_text.insert("end", message + "\n")
+                self.log_text.see("end")
+        except queue.Empty:
+            pass
+
+        self.root.after(100, self.process_log_queue)
 
     def _create_widgets(self):
 
@@ -79,9 +95,16 @@ class MainWindow:
 
     def _log(self, message):
         """Добавить сообщение в логи"""
-        self.log_text.insert("end", message + "\n")
-        self.log_text.see("end")
-        self.root.update()
+
+        # Добавить в очередь (из любого потока)
+        self.log_queue.put(message)
+
+    # Логирование в файл
+        try:
+            with open("lsr_updater.log", "a", encoding="utf-8") as f:
+                f.write(message + "\n")
+        except:
+            pass
 
     def _connect_bkr(self):
         """Подключиться к БКР"""
@@ -93,6 +116,9 @@ class MainWindow:
                 port = int(self.bkr_port.get())
 
                 connector = BkrConnector(ip, port)
+
+                connector.set_log_callback(self._log)
+
                 self.lsr_list = asyncio.run(connector.connect_and_get_lsr_list())
 
                 # Обновить список

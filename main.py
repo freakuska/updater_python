@@ -26,7 +26,7 @@ async def main_interactive():
     print("🚀 ЛСР FIRMWARE UPDATER")
     print("=" * 60)
 
-    bkr_ip = "10.0.1.89"
+    bkr_ip = "10.0.1.88"
     bkr_port = 3456
 
     try:
@@ -197,6 +197,12 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Запустить графический интерфейс"
+    )
+
+    parser.add_argument(
         "--lsr-ip",
         help="IP адрес ЛСР (включит CLI режим)"
     )
@@ -206,7 +212,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--bkr-ip",
-        default="10.0.1.89",
+        default="10.0.1.88",
         help="IP адрес БКР (по умолчанию 10.0.1.89)"
     )
     parser.add_argument(
@@ -217,6 +223,8 @@ def parse_arguments():
     parser.add_argument(
         "--lsr-id",
         help="ID ЛСР (опционально)"
+
+
     )
 
     return parser.parse_args()
@@ -235,7 +243,20 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        args = parse_arguments()
+
+        if args.gui:
+            from run_gui_tk import main as gui_main
+            gui_main()
+        else:
+            # Вместо main() пиши напрямую логику:
+            if args.lsr_ip and args.firmware:
+                success = asyncio.run(main_cli(args))
+            else:
+                success = asyncio.run(main_interactive())
+
+            sys.exit(0 if success else 1)
+
     except KeyboardInterrupt:
         print("\n\nПрограмма завершена.")
         sys.exit(1)
