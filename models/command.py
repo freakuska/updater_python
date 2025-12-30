@@ -69,3 +69,13 @@ class LsrCommands:
     @staticmethod
     def global_reset() -> str:
         return "exe 0xFFFF reset"
+
+
+    @staticmethod
+    def set_frequency_plan(plan_id: int) -> str:
+
+        return f"cc phy {plan_id}"
+
+    @staticmethod
+    def get_frequency_plan() -> str:
+        return "cc phy"

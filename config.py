@@ -88,6 +88,8 @@ class StatusMarkers:
     #успех
     SUCCESS = "[0] 0" #маркер успешной операции/завершения операции
 
+    IN_PROGRESS = "[0] 1"
+
     POLLING = "[0] 4" #опрос еще идет
 
     # ОШИБКИ
@@ -96,6 +98,66 @@ class StatusMarkers:
     TIMEOUT_MARKER = "TIMEOUT" #маркер таймаута
 
     UNKNOWN_STATUS = "?" #неизвестный статус ЛСР (в ответе lsr llv)
+
+
+class FrequencyPlan:
+
+    def __init__(self, plan_id: int, name: str, downlink_hz: int, uplink_hz: int, min_fw_version: str):
+        self.plan_id = plan_id
+        self.name = name
+        self.downlink_hz = downlink_hz
+        self.uplink_hz = uplink_hz
+        self.min_fw_version = min_fw_version
+
+    def __str__(self):
+        return f"План {self.plan_id}: {self.name} ({self.downlink_hz/1e6:.1f} - {self.uplink_hz/1e6:.1f} MHz)"
+
+
+class FrequencyConfig:
+
+    PLANS = {
+        1: FrequencyPlan(
+            plan_id=1,
+            name="BAND_1 (154.2-174.8 MHz)",
+            downlink_hz=154200000,
+            uplink_hz=174800000,
+            min_fw_version="Oct 23 2022 17:12:38"
+        ),
+        4: FrequencyPlan(
+            plan_id=4,
+            name="BAND_4 (155.3-173.7 MHz)",
+            downlink_hz=155300000,
+            uplink_hz=173700000,
+            min_fw_version="Oct 23 2022 17:12:38"
+        ),
+        8: FrequencyPlan(
+            plan_id=8,
+            name="BAND_8 (158.2-173.7 MHz) [2025]",
+            downlink_hz=158200000,
+            uplink_hz=173700000,
+            min_fw_version="Jul 9 2025 16:30:07"
+        )
+    }
+
+    # частотный план по умолчанию
+    DEFAULT_PLAN = 1
+
+    @classmethod
+    def get_plan(cls, plan_id: int) -> FrequencyPlan:
+        """Получить частотный план по ID"""
+        if plan_id not in cls.PLANS:
+            return cls.PLANS[cls.DEFAULT_PLAN]
+        return cls.PLANS[plan_id]
+
+    @classmethod
+    def get_all_plans(cls) -> dict:
+        """Получить все доступные планы"""
+        return cls.PLANS
+
+    @classmethod
+    def plan_names(cls) -> dict:
+        """Получить словарь {ID: имя} для UI"""
+        return {plan_id: plan.name for plan_id, plan in cls.PLANS.items()}
 
 def ensure_directories_exist():
     """
