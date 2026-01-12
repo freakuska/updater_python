@@ -1,6 +1,8 @@
 import asyncio
 import subprocess
 import os
+import re
+from datetime import datetime
 from typing import Callable, Optional
 from pathlib import Path
 from models.lsr_info import LsrInfo
@@ -123,6 +125,55 @@ class FirmwareUpdaterService:
 
         return "1" in response
 
+    def _validate_firmware_type(self, firmware_path: str, device_type: str = "lsr4") -> bool:
+        filename = os.path.basename(firmware_path)
+
+        if device_type not in filename.lower():
+            self._log(f"❌ Ошибка: прошивка {filename} не для {device_type}")
+            self._log(f"   Файл должен содержать '{device_type}' в названии")
+            return False
+
+        self._log(f"✅ Прошивка {filename} соответствует {device_type}")
+        return True
+
+    def _extract_firmware_date(self, firmware_version_str: str) -> Optional[datetime]:
+        try:
+            date_obj = datetime.strptime(firmware_version_str, "%b %d %Y %H:%M:%S")
+            return date_obj
+        except Exception as e:
+            self._log(f"⚠️ Не удалось распарсить дату: {firmware_version_str}")
+            return None
+
+    def _validate_firmware_date(self, firmware_path: str, current_lsr_version: str) -> bool:
+        file_name = os.path.basename(firmware_path)
+
+        match = re.search(r'(\d{8})', file_name)
+        if not match:
+            self._log(f"⚠️ Не найдена дата в имени файла: {file_name}")
+            return False
+
+        firmware_date_str = match.group(1)
+        try:
+            firmware_date = datetime.strptime(firmware_date_str, "%Y%m%d")
+        except:
+            self._log(f"❌ Неверный формат даты в файле: {firmware_date_str}")
+            return False
+
+        current_date = self._extract_firmware_date(current_lsr_version)
+        if not current_date:
+            self._log(f"⚠️ Не удалось определить текущую версию ЛСР")
+            return False
+
+        if firmware_date <= current_date:
+            self._log(f"❌ Ошибка: прошивка не новее текущей")
+            self._log(f"   Текущая ЛСР: {current_date.strftime('%d.%m.%Y')}")
+            self._log(f"   Новая прошивка: {firmware_date.strftime('%d.%m.%Y')}")
+            self._log(f"   Прошивка должна быть НОВЕЕ!")
+            return False
+
+        self._log(f"✅ Прошивка новее: {firmware_date.strftime('%d.%m.%Y')} > {current_date.strftime('%d.%m.%Y')}")
+        return True
+
     async def upload_firmware_via_tftp(self, lsr_ip: str, firmware_path: str) -> bool:
 
         self._log(f"\n{'='*60}")
@@ -243,6 +294,15 @@ class FirmwareUpdaterService:
         self._log(f"╚{'═'*58}╝\n")
 
         try:
+
+            if not self._validate_firmware_type(firmware_path, "lsr4"):
+                self._log("❌ Обновление отменено (неверный тип прошивки)")
+                return False
+
+            if not self._validate_firmware_date(firmware_path, lsr.firmware_version):
+                self._log("❌ Обновление отменено (прошивка не новее текущей)")
+                return False
+
             if not await self.connect_to_bkr():
                 return False
 

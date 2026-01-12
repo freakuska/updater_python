@@ -95,7 +95,7 @@ class BkrConnector:
         return True
 
     async def stop_phy(self) -> bool:
-        self._log("🛑 Останавливка системы позиционирования (phy stop)...")
+        self._log("🛑 Остановка системы позиционирования (phy stop)...")
         command = LsrCommands.phy_stop()
         success, response = await self.send_command(command)
 
