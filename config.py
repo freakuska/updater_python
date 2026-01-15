@@ -44,7 +44,7 @@ class TftpConfig:
 
     SCRIPT_DIR = "scripts" #папка для скриптов
 
-    SCRIPT_NAME = "upgrade.sh"
+    SCRIPT_NAME = "upgrade.bat"
 
     SCRIPT_PATH = os.path.join(SCRIPT_DIR, SCRIPT_NAME)
 

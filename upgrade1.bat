@@ -1,6 +1,6 @@
 @echo off
-set trgt=10.0.1.85
-set fname=bkru-20251210.bin
+set trgt=10.0.1.88
+set fname=bkr-20260115.bin
 if not "%1" == "" set trgt=%1
 if not "%2" == "" set fname=%2
 echo %trgt% %fname%

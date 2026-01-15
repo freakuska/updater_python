@@ -43,7 +43,7 @@ class FirmwareUpdaterService:
 
         return await self.bkr_connector.connect()
 
-    async def prepare_lsr_for_update(self, lsr_id: str) -> bool:
+    async def prepare_lsr_for_update(self, lsr_id: str):
 
         self._log(f"\n{'='*60}")
         self._log(f"Подготовка ЛСР {lsr_id}")
@@ -53,40 +53,52 @@ class FirmwareUpdaterService:
             # Шаг 1: Установить watchdog
             self._log(f"\n Установка watchdog timeout на 3600 сек...")
             command = LsrCommands.set_watchdog_timeout(lsr_id, timeout=3600)
-            response = await self.bkr_connector.send_command(command)
+            success, response = await self.bkr_connector.send_command(command)
+            if not success:
+                self._log("❌ Не удалось установить watchdog")
+                return False, None
 
             await asyncio.sleep(1)
 
             # Шаг 2: Перезагрузить ЛСР
             self._log(f"\nПерезагрузка ЛСР {lsr_id}...")
             command = LsrCommands.reset_lsr(lsr_id)
-            response = await self.bkr_connector.send_command(command)
+            success, response = await self.bkr_connector.send_command(command)
+            if not success:
+                self._log("❌ Не удалось перезагрузить ЛСР")
+                return False, None
 
             await asyncio.sleep(TimeoutConfig.POST_RESET_WAIT)
 
             # Шаг 3: Получить IP адрес ЛСР
             self._log(f"\nПолучение IP адреса ЛСР {lsr_id}...")
             command = LsrCommands.get_lsr_ip(lsr_id)
-            response = await self.bkr_connector.send_command(command)
-            lsr_ip = self._parse_lsr_ip(response)
+            success, response = await self.bkr_connector.send_command(command)
+            if not success:
+                self._log("❌ БКР не вернул IP адрес ЛСР")
+                return False, None
 
+            lsr_ip = self._parse_lsr_ip(response)
             if not lsr_ip:
-                self._log(f"❌ Не удалось получить IP адрес ЛСР")
-                return False
+                self._log("❌ Не удалось распарсить IP адрес ЛСР")
+                return False, None
 
             self._log(f"✅ IP адрес ЛСР: {lsr_ip}")
 
             # Шаг 4: Проверить WWDG статус
             self._log(f"\n Проверка WWDG статус...")
             command = LsrCommands.check_watchdog_status(lsr_id)
-            response = await self.bkr_connector.send_command(command)
+            success, response = await self.bkr_connector.send_command(command)
+            if not success:
+                self._log("❌ Не удалось получить статус WWDG")
+                return False, None
 
             wwdg_enabled = self._parse_wwdg_status(response)
 
             if wwdg_enabled:
                 self._log(f"⚠️ WWDG включен, выполняется сброс...")
                 command = LsrCommands.disable_watchdog(lsr_id)
-                response = await self.bkr_connector.send_command(command)
+                success, response = await self.bkr_connector.send_command(command)
                 await asyncio.sleep(1)
 
             self._log(f"✅ ЛСР готов к обновлению")
@@ -181,12 +193,10 @@ class FirmwareUpdaterService:
         self._log(f"{'='*60}")
 
         try:
-            # Проверяем наличие скрипта
             if not os.path.exists(TftpConfig.SCRIPT_PATH):
                 self._log(f"❌ Скрипт не найден: {TftpConfig.SCRIPT_PATH}")
                 return False
 
-            # Проверяем наличие файла прошивки
             if not os.path.exists(firmware_path):
                 self._log(f"❌ Файл прошивки не найден: {firmware_path}")
                 return False
@@ -194,7 +204,6 @@ class FirmwareUpdaterService:
             firmware_size = os.path.getsize(firmware_path) / 1024  # в KB
             self._log(f"📦 Размер прошивки: {firmware_size:.1f} KB")
 
-            # Проверяем размер
             max_size = FlashConfig.max_firmware_size_kb()
             if firmware_size > max_size:
                 self._log(f"❌ Размер прошивки превышает максимально допустимый ({max_size} KB)")
@@ -204,7 +213,6 @@ class FirmwareUpdaterService:
             await self.bkr_connector.enable_promiscuous()
             await asyncio.sleep(1)
 
-            # Запускаем скрипт upgrade.sh
             self._log(f"\n🚀 Запуск скрипта: {TftpConfig.SCRIPT_PATH} {lsr_ip} {firmware_path}")
 
             try:
@@ -212,19 +220,25 @@ class FirmwareUpdaterService:
                     [TftpConfig.SCRIPT_PATH, lsr_ip, firmware_path],
                     capture_output=True,
                     text=True,
-                    timeout=TimeoutConfig.TFTP_TIMEOUT
+                    timeout=TimeoutConfig.TFTP_TIMEOUT,
+                    shell=True
                 )
 
-                self._log(f"📤 Stdout: {result.stdout}")
-                if result.stderr:
-                    self._log(f"⚠️ Stderr: {result.stderr}")
+                stdout = (result.stdout or "").strip()
+                stderr = (result.stderr or "").strip()
 
-                if result.returncode == 0:
-                    self._log(f"✅ Прошивка передана)")
-                    return True
-                else:
-                    self._log(f"❌ Скрипт завершился с ошибкой (код: {result.returncode})")
+                self._log(f"📤 Stdout: {stdout}")
+                if result.stderr:
+                    self._log(f"⚠️ Stderr: {stderr}")
+
+                upper_out = stdout.upper()
+
+                if result.returncode != 0 or "ERROR" in upper_out:
+                    self._log("❌ Скрипт/TFTP завершился с ошибкой, прошивка НЕ передана")
                     return False
+
+                self._log("✅ Прошивка передана")
+                return True
 
             except subprocess.TimeoutExpired:
                 self._log(f"❌ Timeout при передаче прошивки (>{TimeoutConfig.TFTP_TIMEOUT} сек)")
@@ -256,22 +270,18 @@ class FirmwareUpdaterService:
             # Шаг 1: Сбросить watchdog
             self._log(f"\n Сброс watchdog timeout...")
             command = LsrCommands.reset_watchdog_timeout(lsr_id)
-            response = await self.bkr_connector.send_command(command)
+            success, response = await self.bkr_connector.send_command(command)
 
             await asyncio.sleep(1)
 
             # Шаг 2: Перезагрузить ЛСР
             self._log(f"\n Перезагрузка ЛСР {lsr_id}...")
             command = LsrCommands.reset_lsr(lsr_id)
-            response = await self.bkr_connector.send_command(command)
+            success, response = await self.bkr_connector.send_command(command)
 
             await asyncio.sleep(TimeoutConfig.POST_RESET_WAIT)
 
-            # Шаг 3: Отключить promiscuous mode
-            self._log(f"\n Отключение promiscuous mode...")
-            await self.bkr_connector.disable_promiscuous()
 
-            await asyncio.sleep(1)
 
             self._log(f"\n Запуск позиционирования...")
             await self.bkr_connector.start_phy()
@@ -304,14 +314,13 @@ class FirmwareUpdaterService:
                 return False
 
             if not await self.connect_to_bkr():
+                self._log("❌ Не удалось подключиться к БКР")
                 return False
 
-            result = await self.prepare_lsr_for_update(lsr.id)
-            if result is False or result[0] is False:
-                self._log(f"❌ Обновление отменено (ошибка подготовки)")
+            success, lsr_ip = await self.prepare_lsr_for_update(lsr.id)
+            if not success or not lsr_ip:
+                self._log("❌ Обновление отменено (ошибка подготовки)")
                 return False
-
-            _, lsr_ip = result
 
             if not await self.upload_firmware_via_tftp(lsr_ip, firmware_path):
                 self._log(f"❌ Обновление отменено (ошибка передачи)")
