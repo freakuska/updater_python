@@ -2,6 +2,7 @@ import asyncio
 import subprocess
 import os
 import re
+import zlib
 from datetime import datetime
 from typing import Callable, Optional
 from pathlib import Path
@@ -55,7 +56,7 @@ class FirmwareUpdaterService:
             command = LsrCommands.set_watchdog_timeout(lsr_id, timeout=3600)
             success, response = await self.bkr_connector.send_command(command)
             if not success:
-                self._log("❌ Не удалось установить watchdog")
+                self._log(" Не удалось установить watchdog")
                 return False, None
 
             await asyncio.sleep(1)
@@ -65,7 +66,7 @@ class FirmwareUpdaterService:
             command = LsrCommands.reset_lsr(lsr_id)
             success, response = await self.bkr_connector.send_command(command)
             if not success:
-                self._log("❌ Не удалось перезагрузить ЛСР")
+                self._log(" Не удалось перезагрузить ЛСР")
                 return False, None
 
             await asyncio.sleep(TimeoutConfig.POST_RESET_WAIT)
@@ -75,37 +76,37 @@ class FirmwareUpdaterService:
             command = LsrCommands.get_lsr_ip(lsr_id)
             success, response = await self.bkr_connector.send_command(command)
             if not success:
-                self._log("❌ БКР не вернул IP адрес ЛСР")
+                self._log(" БКР не вернул IP адрес ЛСР")
                 return False, None
 
             lsr_ip = self._parse_lsr_ip(response)
             if not lsr_ip:
-                self._log("❌ Не удалось распарсить IP адрес ЛСР")
+                self._log(" Не удалось распарсить IP адрес ЛСР")
                 return False, None
 
-            self._log(f"✅ IP адрес ЛСР: {lsr_ip}")
+            self._log(f" IP адрес ЛСР: {lsr_ip}")
 
             # Шаг 4: Проверить WWDG статус
             self._log(f"\n Проверка WWDG статус...")
             command = LsrCommands.check_watchdog_status(lsr_id)
             success, response = await self.bkr_connector.send_command(command)
             if not success:
-                self._log("❌ Не удалось получить статус WWDG")
+                self._log(" Не удалось получить статус WWDG")
                 return False, None
 
             wwdg_enabled = self._parse_wwdg_status(response)
 
             if wwdg_enabled:
-                self._log(f"⚠️ WWDG включен, выполняется сброс...")
+                self._log(f" WWDG включен, выполняется сброс...")
                 command = LsrCommands.disable_watchdog(lsr_id)
                 success, response = await self.bkr_connector.send_command(command)
                 await asyncio.sleep(1)
 
-            self._log(f"✅ ЛСР готов к обновлению")
+            self._log(f" ЛСР готов к обновлению")
             return True, lsr_ip
 
         except Exception as e:
-            self._log(f"❌ Ошибка: {str(e)}")
+            self._log(f" Ошибка: {str(e)}")
             return False, None
 
     def _parse_lsr_ip(self, response: str) -> Optional[str]:
@@ -141,11 +142,11 @@ class FirmwareUpdaterService:
         filename = os.path.basename(firmware_path)
 
         if device_type not in filename.lower():
-            self._log(f"❌ Ошибка: прошивка {filename} не для {device_type}")
+            self._log(f" Ошибка: прошивка {filename} не для {device_type}")
             self._log(f"   Файл должен содержать '{device_type}' в названии")
             return False
 
-        self._log(f"✅ Прошивка {filename} соответствует {device_type}")
+        self._log(f" Прошивка {filename} соответствует {device_type}")
         return True
 
     def _extract_firmware_date(self, firmware_version_str: str) -> Optional[datetime]:
@@ -153,7 +154,7 @@ class FirmwareUpdaterService:
             date_obj = datetime.strptime(firmware_version_str, "%b %d %Y %H:%M:%S")
             return date_obj
         except Exception as e:
-            self._log(f"⚠️ Не удалось распарсить дату: {firmware_version_str}")
+            self._log(f" Не удалось распарсить дату: {firmware_version_str}")
             return None
 
     def _validate_firmware_date(self, firmware_path: str, current_lsr_version: str) -> bool:
@@ -161,30 +162,22 @@ class FirmwareUpdaterService:
 
         match = re.search(r'(\d{8})', file_name)
         if not match:
-            self._log(f"⚠️ Не найдена дата в имени файла: {file_name}")
+            self._log(f" Не найдена дата в имени файла: {file_name}")
             return False
 
         firmware_date_str = match.group(1)
         try:
             firmware_date = datetime.strptime(firmware_date_str, "%Y%m%d")
         except:
-            self._log(f"❌ Неверный формат даты в файле: {firmware_date_str}")
+            self._log(f" Неверный формат даты в файле: {firmware_date_str}")
             return False
 
         current_date = self._extract_firmware_date(current_lsr_version)
         if not current_date:
-            self._log(f"⚠️ Не удалось определить текущую версию ЛСР")
+            self._log(f" Не удалось определить текущую версию ЛСР")
             return False
 
-        if firmware_date <= current_date:
-            self._log(f"❌ Ошибка: прошивка не новее текущей")
-            self._log(f"   Текущая ЛСР: {current_date.strftime('%d.%m.%Y')}")
-            self._log(f"   Новая прошивка: {firmware_date.strftime('%d.%m.%Y')}")
-            self._log(f"   Прошивка должна быть НОВЕЕ!")
-            return False
 
-        self._log(f"✅ Прошивка новее: {firmware_date.strftime('%d.%m.%Y')} > {current_date.strftime('%d.%m.%Y')}")
-        return True
 
     async def upload_firmware_via_tftp(self, lsr_ip: str, firmware_path: str) -> bool:
 
@@ -194,61 +187,67 @@ class FirmwareUpdaterService:
 
         try:
             if not os.path.exists(TftpConfig.SCRIPT_PATH):
-                self._log(f"❌ Скрипт не найден: {TftpConfig.SCRIPT_PATH}")
+                self._log(f" Скрипт не найден: {TftpConfig.SCRIPT_PATH}")
                 return False
 
             if not os.path.exists(firmware_path):
-                self._log(f"❌ Файл прошивки не найден: {firmware_path}")
+                self._log(f" Файл прошивки не найден: {firmware_path}")
                 return False
 
             firmware_size = os.path.getsize(firmware_path) / 1024  # в KB
-            self._log(f"📦 Размер прошивки: {firmware_size:.1f} KB")
+            self._log(f" Размер прошивки: {firmware_size:.1f} KB")
 
             max_size = FlashConfig.max_firmware_size_kb()
             if firmware_size > max_size:
-                self._log(f"❌ Размер прошивки превышает максимально допустимый ({max_size} KB)")
+                self._log(f" Размер прошивки превышает максимально допустимый ({max_size} KB)")
                 return False
 
-            self._log(f"\n📡 Включение promiscuous mode...")
+            crc_hex = self._calc_crc32_hex(firmware_path)
+            tftp_name = f"{crc_hex}.bin"
+            self._log(f"🔢 CRC32 прошивки: {crc_hex}, имя файла для TFTP: {tftp_name}")
+
+            self._log(f"\n Включение promiscuous mode...")
             await self.bkr_connector.enable_promiscuous()
             await asyncio.sleep(1)
 
-            self._log(f"\n🚀 Запуск скрипта: {TftpConfig.SCRIPT_PATH} {lsr_ip} {firmware_path}")
+            self._log(f"\n Запуск скрипта: {TftpConfig.SCRIPT_PATH} {lsr_ip} {firmware_path}")
 
             try:
                 result = subprocess.run(
-                    [TftpConfig.SCRIPT_PATH, lsr_ip, firmware_path],
+                    [TftpConfig.SCRIPT_PATH, lsr_ip, firmware_path, tftp_name],
                     capture_output=True,
                     text=True,
                     timeout=TimeoutConfig.TFTP_TIMEOUT,
-                    shell=True
                 )
 
                 stdout = (result.stdout or "").strip()
                 stderr = (result.stderr or "").strip()
 
-                self._log(f"📤 Stdout: {stdout}")
+                self._log(f" Stdout: {stdout}")
                 if result.stderr:
-                    self._log(f"⚠️ Stderr: {stderr}")
+                    self._log(f" Stderr: {stderr}")
 
-                upper_out = stdout.upper()
-
-                if result.returncode != 0 or "ERROR" in upper_out:
-                    self._log("❌ Скрипт/TFTP завершился с ошибкой, прошивка НЕ передана")
+                if result.returncode != 0:
+                    self._log(" Скрипт/TFTP завершился с ошибкой, прошивка НЕ передана")
                     return False
 
                 self._log("✅ Прошивка передана")
                 return True
 
             except subprocess.TimeoutExpired:
-                self._log(f"❌ Timeout при передаче прошивки (>{TimeoutConfig.TFTP_TIMEOUT} сек)")
+                self._log(f" Timeout при передаче прошивки (>{TimeoutConfig.TFTP_TIMEOUT} сек)")
                 return False
 
         except Exception as e:
-            self._log(f"❌ Ошибка: {str(e)}")
+            self._log(f" Ошибка: {str(e)}")
             return False
 
-
+    def _calc_crc32_hex(self, path: str) -> str:
+        crc = 0
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                crc = zlib.crc32(chunk, crc)
+        return f"{crc & 0xFFFFFFFF:08X}"
 
     async def verify_firmware_transfer(self, lsr_ip: str) -> bool:
 
@@ -256,7 +255,7 @@ class FirmwareUpdaterService:
         self._log(f"Проверка передачи")
         self._log(f"{'='*60}")
 
-        self._log(f"ℹ️ Фаза проверки пропущена")
+        self._log(f" Фаза проверки пропущена")
         return True
 
 
@@ -286,11 +285,11 @@ class FirmwareUpdaterService:
             self._log(f"\n Запуск позиционирования...")
             await self.bkr_connector.start_phy()
 
-            self._log(f"✅ Система возвращена в исходное состояние)")
+            self._log(f" Система возвращена в исходное состояние)")
             return True
 
         except Exception as e:
-            self._log(f"❌ ОШИБКА В ФАЗЕ 4: {str(e)}")
+            self._log(f" ОШИБКА В ФАЗЕ 4: {str(e)}")
             return False
 
     async def update_lsr_async(self, lsr: LsrInfo, firmware_path: str) -> bool:
@@ -306,30 +305,26 @@ class FirmwareUpdaterService:
         try:
 
             if not self._validate_firmware_type(firmware_path, "lsr4"):
-                self._log("❌ Обновление отменено (неверный тип прошивки)")
-                return False
-
-            if not self._validate_firmware_date(firmware_path, lsr.firmware_version):
-                self._log("❌ Обновление отменено (прошивка не новее текущей)")
+                self._log(" Обновление отменено (неверный тип прошивки)")
                 return False
 
             if not await self.connect_to_bkr():
-                self._log("❌ Не удалось подключиться к БКР")
+                self._log(" Не удалось подключиться к БКР")
                 return False
 
             success, lsr_ip = await self.prepare_lsr_for_update(lsr.id)
             if not success or not lsr_ip:
-                self._log("❌ Обновление отменено (ошибка подготовки)")
+                self._log(" Обновление отменено (ошибка подготовки)")
                 return False
 
             if not await self.upload_firmware_via_tftp(lsr_ip, firmware_path):
-                self._log(f"❌ Обновление отменено (ошибка передачи)")
+                self._log(f" Обновление отменено (ошибка передачи)")
                 return False
 
             await self.verify_firmware_transfer(lsr_ip)
 
             if not await self.finalize_update(lsr.id):
-                self._log(f"❌ Ошибка при возврате в исходное состояние")
+                self._log(f" Ошибка при возврате в исходное состояние")
                 return False
 
             self._log(f"\n\n")
@@ -340,7 +335,7 @@ class FirmwareUpdaterService:
             return True
 
         except Exception as e:
-            self._log(f"\n❌ КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+            self._log(f"\n КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
             import traceback
             self._log(f"обратная связь: {traceback.format_exc()}")
             return False
@@ -351,7 +346,7 @@ class FirmwareUpdaterService:
 
     async def check_firmware_version(self, lsr: LsrInfo) -> bool:
 
-        self._log(f"🔍 Проверка версии прошивки ЛСР {lsr.id}...")
+        self._log(f" Проверка версии прошивки ЛСР {lsr.id}...")
         self._log(f"   Текущая версия: {lsr.firmware_version}")
         self._log(f"   Минимальная поддерживаемая: {FirmwareVersionConfig.MIN_VERSION_DATE}")
 
@@ -359,5 +354,6 @@ class FirmwareUpdaterService:
             self._log(f"⚠️ Прошивка устаревшая, требуется обновление")
             return True
         else:
-            self._log(f"✅ Прошивка современная")
+            #self._log(f"✅ Прошивка современная")
+            self._log(f"Прошивка современная")
             return False

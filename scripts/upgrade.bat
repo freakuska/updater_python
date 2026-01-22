@@ -1,30 +1,36 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal ENABLEDELAYEDEXPANSION
 
-set ip=10.0.0.2
-set fname=build\stm32f7.bin
+set ip=%1
+set fname=%2
+set tftpname=%3
 
-if not "%~1"=="" set ip=%~1
-if not "%~2"=="" set fname=%~2
-
-echo %ip% %fname%
-
+if "%ip%"=="" (
+    echo [upgrade.bat] IP not specified
+    exit /b 1
+)
+if "%fname%"=="" (
+    echo [upgrade.bat] Firmware file not specified
+    exit /b 1
+)
+if "%tftpname%"=="" (
+    echo [upgrade.bat] TFTP name not specified
+    exit /b 1
+)
 if not exist "%fname%" (
+    echo [upgrade.bat] Firmware file not found: %fname%
     exit /b 1
 )
 
-for /f "tokens=* usebackq" %%i in (`cksfv -b -q "%fname%" ^| tail -n 1`) do set crc=%%i
-if "!crc!"=="" (
-    exit /b 1
-)
+echo [upgrade.bat] IP: %ip%
+echo [upgrade.bat] Firmware: %fname%
+echo [upgrade.bat] TFTP name: %tftpname%
 
-for /f "tokens=* delims= " %%i in ("!crc!") do set last=%%i
-set crc=!last!
-
-set outname=!crc!.bin
-tftp -i %ip% PUT "%fname%" "!outname!"
+tftp -i %ip% PUT "%fname%" %tftpname%
 if errorlevel 1 (
+    echo [upgrade.bat] TFTP ERROR
     exit /b 1
 ) else (
+    echo [upgrade.bat] TFTP OK
     exit /b 0
 )
