@@ -66,13 +66,13 @@ async def main_interactive():
                 if 0 <= index < len(lsr_list):
                     selected_lsrs = [lsr_list[index]]
                 else:
-                    print("Неправильный номер!")
+                    print("❌ Неправильный номер!")
                     return False
             except ValueError:
-                print("Введи число или 'all'!")
+                print("❌ Введи число или 'all'!")
                 return False
 
-        print("\n ВЫБОР ФАЙЛА ПРОШИВКИ:")
+        print("\n📦 ВЫБОР ФАЙЛА ПРОШИВКИ:")
         firmware_path = input("Введи путь к файлу прошивки: ").strip()
 
         if not Path(firmware_path).exists():

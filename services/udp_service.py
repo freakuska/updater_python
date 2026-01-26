@@ -23,10 +23,10 @@ class UpdService:
             #установка таймаута
             self.socket.settimeout(self.timeout)
 
-            logger.info(f"UDP сокет создан для {self.host}:{self.port}")
+            logger.info(f"✅ UDP сокет создан для {self.host}:{self.port}")
 
         except Exception as e:
-            logger.error(f"Ошибка при создании UDP сокета: {e}")
+            logger.error(f"❌ Ошибка при создании UDP сокета: {e}")
             raise
 
     def send_command(self, command: str) -> str:
@@ -40,7 +40,7 @@ class UpdService:
             #отправка команды на БКР
             self.socket.sendto(data, (self.host, self.port))
 
-            logger.debug(f"Отправлена команда: {command}")
+            logger.debug(f"📤 Отправлена команда: {command}")
 
             #ожидание ответа от БКР
             response, _ = self.socket.recvfrom(4096)
@@ -48,20 +48,20 @@ class UpdService:
             #декодирование байтов обратно в текст
             result = response.decode('utf-8', errors='ignore')
 
-            logger.debug(f" Получен ответ: {result[:100]}...")
+            logger.debug(f"📥 Получен ответ: {result[:100]}...")
 
             return result
 
         except socket.timeout:
-            logger.error(f"Ошибка при отправке команды: {command}")
+            logger.error(f"❌ Ошибка при отправке команды: {command}")
             return "TIMEOUT"
 
         except Exception as e:
-            logger.error(f"Ошибка при отправке команды: {e}")
+            logger.error(f"❌ Ошибка при отправке команды: {e}")
             return f"ERROR: {e}"
 
     def disconnect(self):
         """Закрыть соединение"""
         if self.socket:
             self.socket.close()
-            logger.info("UDP сокет закрыт")
+            logger.info("📴 UDP сокет закрыт")

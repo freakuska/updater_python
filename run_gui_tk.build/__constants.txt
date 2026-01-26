@@ -1,0 +1,103 @@
+{
+  "__bytecode.const": {
+    "blob_name": ".bytecode",
+    "blob_size": 7713247,
+    "input_size": 7742741
+  },
+  "__constants.const": {
+    "blob_name": "",
+    "blob_size": 878,
+    "input_size": 2245
+  },
+  "module.__main__.const": {
+    "blob_name": "__main__",
+    "blob_size": 397,
+    "input_size": 722
+  },
+  "module.__parents_main__.const": {
+    "blob_name": "__parents_main__",
+    "blob_size": 499,
+    "input_size": 1007
+  },
+  "module.config.const": {
+    "blob_name": "config",
+    "blob_size": 3447,
+    "input_size": 5236
+  },
+  "module.models.command.const": {
+    "blob_name": "models.command",
+    "blob_size": 1482,
+    "input_size": 2478
+  },
+  "module.models.const": {
+    "blob_name": "models",
+    "blob_size": 114,
+    "input_size": 231
+  },
+  "module.models.firmware_info.const": {
+    "blob_name": "models.firmware_info",
+    "blob_size": 847,
+    "input_size": 1584
+  },
+  "module.models.lsr_info.const": {
+    "blob_name": "models.lsr_info",
+    "blob_size": 512,
+    "input_size": 985
+  },
+  "module.multiprocessing-postLoad.const": {
+    "blob_name": "multiprocessing-postLoad",
+    "blob_size": 364,
+    "input_size": 692
+  },
+  "module.multiprocessing-preLoad.const": {
+    "blob_name": "multiprocessing-preLoad",
+    "blob_size": 226,
+    "input_size": 471
+  },
+  "module.services.bkr_connector.const": {
+    "blob_name": "services.bkr_connector",
+    "blob_size": 6178,
+    "input_size": 9022
+  },
+  "module.services.const": {
+    "blob_name": "services",
+    "blob_size": 118,
+    "input_size": 235
+  },
+  "module.services.firmware_updater.const": {
+    "blob_name": "services.firmware_updater",
+    "blob_size": 8072,
+    "input_size": 11682
+  },
+  "module.services.udp_service.const": {
+    "blob_name": "services.udp_service",
+    "blob_size": 1171,
+    "input_size": 2047
+  },
+  "module.tkinter-preLoad.const": {
+    "blob_name": "tkinter-preLoad",
+    "blob_size": 187,
+    "input_size": 406
+  },
+  "module.ui.const": {
+    "blob_name": "ui",
+    "blob_size": 106,
+    "input_size": 223
+  },
+  "module.ui.main_window.const": {
+    "blob_name": "ui.main_window",
+    "blob_size": 4530,
+    "input_size": 7208
+  },
+  "module.utils.const": {
+    "blob_name": "utils",
+    "blob_size": 112,
+    "input_size": 229
+  },
+  "module.utils.logger.const": {
+    "blob_name": "utils.logger",
+    "blob_size": 366,
+    "input_size": 675
+  },
+  "total": 1917
+}

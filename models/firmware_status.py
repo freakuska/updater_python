@@ -20,14 +20,14 @@ class FirmwareUpdateStage(Enum):
     def __str__(self) -> str:
         """Красивый вывод названия этапа"""
         names = {
-            FirmwareUpdateStage.STARTING: "Запуск",
-            FirmwareUpdateStage.PREPARING: "Подготовка",
-            FirmwareUpdateStage.CHECKING: "Проверка",
-            FirmwareUpdateStage.PROMISCUOUS_MODE: "Promiscuous режим",
-            FirmwareUpdateStage.TRANSFERRING_FILE: "Передача файла",
-            FirmwareUpdateStage.RECOVERY: "Восстановление",
-            FirmwareUpdateStage.FINALIZING: "Завершение",
-            FirmwareUpdateStage.COMPLETED: "Завершено",
+            FirmwareUpdateStage.STARTING: "🚀 Запуск",
+            FirmwareUpdateStage.PREPARING: "📋 Подготовка",
+            FirmwareUpdateStage.CHECKING: "🔍 Проверка",
+            FirmwareUpdateStage.PROMISCUOUS_MODE: "📡 Promiscuous режим",
+            FirmwareUpdateStage.TRANSFERRING_FILE: "📤 Передача файла",
+            FirmwareUpdateStage.RECOVERY: "🔧 Восстановление",
+            FirmwareUpdateStage.FINALIZING: "🔐 Завершение",
+            FirmwareUpdateStage.COMPLETED: "✅ Завершено",
         }
         return names.get(self, self.name)
 
@@ -89,6 +89,6 @@ class FirmwareUpdateResult:
     def get_summary(self) -> str:
         """Получить сводку результата"""
         if self.is_success:
-            return f"Успешно обновлено за {self.duration:.1f}s"
+            return f"✅ Успешно обновлено за {self.duration:.1f}s"
         else:
-            return f"Ошибка на этапе {self.stage}: {self.error_message}"
+            return f"❌ Ошибка на этапе {self.stage}: {self.error_message}"
