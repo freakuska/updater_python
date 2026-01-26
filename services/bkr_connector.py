@@ -35,10 +35,10 @@ class BkrConnector:
             self.socket.settimeout(self.timeout)
             self._log(f"🔌 Подключаюсь к БКР на {self.ip}:{self.port}...")
             self.socket.sendto(b"\n", (self.ip, self.port))
-            self._log(f"✅ Сокет создан и готов")
+            self._log(f"Сокет создан и готов")
             return True
         except Exception as e:
-            self._log(f"❌ Ошибка подключения: {str(e)}")
+            self._log(f"Ошибка подключения: {str(e)}")
             return False
 
     async def send_command(self, command: str, wait_response: bool = True) -> Tuple[bool, str]:
@@ -50,7 +50,7 @@ class BkrConnector:
             if not self.socket:
                 raise Exception("сокет не инициализирован")
 
-            self._log(f"📤 Отправка: {command}")
+            self._log(f"Отправка: {command}")
             self.socket.sendto((command + "\n").encode('utf-8'), (self.ip, self.port))
 
             if not wait_response:
@@ -65,18 +65,17 @@ class BkrConnector:
                     response = data.decode('utf-8', errors='ignore').strip()
                     if response:
                         response_lines.append(response)
-                        self._log(f"📥 Ответ: {response}")
+                        self._log(f"Ответ: {response}")
                 except socket.timeout:
                     break
 
             full_response = "\n".join(response_lines)
 
-            # ✅ Проверяем exit code [0] или [1]
             success = self._check_exit_code(full_response)
             return success, full_response
 
         except Exception as e:
-            self._log(f"❌ Ошибка при отправке команды: {str(e)}")
+            self._log(f"Ошибка при отправке команды: {str(e)}")
             return False, ""
 
     def _check_exit_code(self, response: str) -> bool:
@@ -88,37 +87,37 @@ class BkrConnector:
             if exit_code == 0:
                 return True
             else:
-                self._log(f"⚠️ Команда вернула ошибку: [{exit_code}]")
+                self._log(f"Команда вернула ошибку: [{exit_code}]")
                 return False
 
         # Если нет явного кода - считаем успехом
         return True
 
     async def stop_phy(self) -> bool:
-        self._log("🛑 Остановка системы позиционирования (phy stop)...")
+        self._log("Остановка системы позиционирования (phy stop)...")
         command = LsrCommands.phy_stop()
         success, response = await self.send_command(command)
 
         if success:
             await asyncio.sleep(BkrPollingConfig.PRE_POLL_DELAY_SEC)
-            self._log(f"✅ Позиционирование остановлено")
+            self._log(f"Позиционирование остановлено")
         else:
-            self._log("❌ Ошибка при остановке позиционирования")
+            self._log("Ошибка при остановке позиционирования")
 
         return success
 
     async def clear_lsr_poll(self) -> bool:
-        self._log("🧹 Очистка списока запросов ЛСР...")
+        self._log("Очистка списока запросов ЛСР...")
         command = LsrCommands.poll_lsr_clear()
         success, response = await self.send_command(command)
 
         if not success:
-            self._log(f"❌ Ошибка при очистке запросов")
+            self._log(f"Ошибка при очистке запросов")
 
         return success
 
     async def poll_lsr(self) -> bool:
-        self._log("📡 Опрос ЛСР (lsr poll)...")
+        self._log("Опрос ЛСР (lsr poll)...")
         command = "lsr poll"
         success, response = await self.send_command(command)
 
@@ -127,7 +126,7 @@ class BkrConnector:
             self._log(f"⏳ Ожидание завершения опроса (~{estimated_time:.1f} сек)...")
             await asyncio.sleep(3)
         else:
-            self._log(f"❌ Ошибка при опросе ЛСР")
+            self._log(f"Ошибка при опросе ЛСР")
 
         return success
 
@@ -136,34 +135,33 @@ class BkrConnector:
 
         for iteration in range(max_iterations):
             if iteration % BkrPollingConfig.LOG_FREQUENCY == 0:
-                self._log(f"🔍 Проверка статуса БКР (попытка {iteration}/{max_iterations})...")
+                self._log(f"Проверка статуса БКР (попытка {iteration}/{max_iterations})...")
 
             command = LsrCommands.get_bkr_status()
             success, response = await self.send_command(command)
 
-            # ✅ Проверяем exit code
             if success:
-                self._log("✅ БКР готов (статистика собрана)")
+                self._log("БКР готов (статистика собрана)")
                 return True
             else:
                 # [1] означает, что опрос ещё идёт
                 await asyncio.sleep(BkrPollingConfig.POLL_INTERVAL_SEC)
                 continue
 
-        self._log("❌ Timeout: БКР не ответил в установленное время")
+        self._log("Timeout: БКР не ответил в установленное время")
         return False
 
     async def get_lsr_list(self) -> List[LsrInfo]:
-        self._log("📋 Получение списка ЛСР (lsr llv)...")
+        self._log("Получение списка ЛСР (lsr llv)...")
         command = LsrCommands.get_lsr_list()
         success, response = await self.send_command(command)
 
         if not success:
-            self._log(f"❌ Ошибка при получении списка ЛСР")
+            self._log(f"Ошибка при получении списка ЛСР")
             return []
 
         lsr_list = self._parse_lsr_list(response)
-        self._log(f"✅ Найдено {len(lsr_list)} ЛСР")
+        self._log(f"Найдено {len(lsr_list)} ЛСР")
 
         return lsr_list
 
@@ -180,7 +178,7 @@ class BkrConnector:
             if "?" in line:
                 try:
                     lsr_id = line.split()[0]
-                    self._log(f"⚠️ ЛСР {lsr_id} недоступен (статус: ?)")
+                    self._log(f"ЛСР {lsr_id} недоступен (статус: ?)")
                 except:
                     pass
                 continue
@@ -201,10 +199,10 @@ class BkrConnector:
                     firmware_version=firmware_version
                 )
                 lsr_list.append(lsr)
-                self._log(f"✅ ЛСР {lsr_id}: FW={firmware_version}")
+                self._log(f"ЛСР {lsr_id}: FW={firmware_version}")
 
             except Exception as e:
-                self._log(f"⚠️ Ошибка парсинга строки '{line}': {str(e)}")
+                self._log(f"Ошибка парсинга строки '{line}': {str(e)}")
                 continue
 
         return lsr_list
@@ -220,50 +218,50 @@ class BkrConnector:
             return False
 
     async def enable_promiscuous(self) -> bool:
-        self._log("📡 Включение promiscuous mode (eth promiscuous 1)...")
+        self._log("Включение promiscuous mode (eth promiscuous 1)...")
         command = LsrCommands.promiscuous_enable()
         success, response = await self.send_command(command)
 
         if not success:
-            self._log(f"❌ Ошибка при включении promiscuous mode")
+            self._log(f"Ошибка при включении promiscuous mode")
 
         return success
 
     async def disable_promiscuous(self) -> bool:
-        self._log("📡 Отключение promiscuous mode (eth promiscuous 0)...")
+        self._log("Отключение promiscuous mode (eth promiscuous 0)...")
         command = LsrCommands.promiscuous_disable()
         success, response = await self.send_command(command)
 
         if not success:
-            self._log(f"❌ Ошибка при отключении promiscuous mode")
+            self._log(f"Ошибка при отключении promiscuous mode")
 
         return success
 
     async def start_phy(self) -> bool:
-        self._log("▶️ Запуск системы позиционирования (phy start)...")
+        self._log("▶Запуск системы позиционирования (phy start)...")
         command = LsrCommands.phy_start()
         success, response = await self.send_command(command)
 
         if not success:
-            self._log(f"❌ Ошибка при запуске позиционирования")
+            self._log(f"Ошибка при запуске позиционирования")
 
         return success
 
     async def get_lsr_status(self, lsr_id: str) -> dict:
-        self._log(f"ℹ️ Получение информации о ЛСР {lsr_id}...")
+        self._log(f"Получение информации о ЛСР {lsr_id}...")
         command = LsrCommands.get_sys_info(lsr_id)
         success, response = await self.send_command(command)
         return {"raw": response, "success": success}
 
     async def reset_lsr(self, lsr_id: str) -> bool:
-        self._log(f"🔄 Перезагрузка ЛСР {lsr_id}...")
+        self._log(f"Перезагрузка ЛСР {lsr_id}...")
         command = LsrCommands.reset_lsr(lsr_id)
         success, response = await self.send_command(command)
 
         if success:
             await asyncio.sleep(TimeoutConfig.POST_RESET_WAIT)
         else:
-            self._log(f"❌ Ошибка при перезагрузке ЛСР")
+            self._log(f"Ошибка при перезагрузке ЛСР")
 
         return success
 
@@ -272,7 +270,7 @@ class BkrConnector:
 
         plan = FrequencyConfig.get_plan(plan_id)
 
-        self._log(f"\n📡 Установка частотного плана {plan.plan_id}...")
+        self._log(f"\nУстановка частотного плана {plan.plan_id}...")
         self._log(f"   {plan.name}")
         self._log(f"   Минимальная версия: {plan.min_fw_version}")
 
@@ -281,39 +279,39 @@ class BkrConnector:
             success, response = await self.send_command(command)
 
             if success:
-                self._log(f"✅ Частотный план установлен")
+                self._log(f"Частотный план установлен")
             else:
-                self._log(f"❌ Ошибка при установке частотного плана")
+                self._log(f"Ошибка при установке частотного плана")
 
             return success
 
         except Exception as e:
-            self._log(f"❌ Ошибка при установке частотного плана: {str(e)}")
+            self._log(f"Ошибка при установке частотного плана: {str(e)}")
             return False
 
     async def get_frequency_plan(self) -> Optional[int]:
-        self._log(f"🔍 Получение текущего частотного плана...")
+        self._log(f"Получение текущего частотного плана...")
 
         try:
             command = LsrCommands.get_frequency_plan()
             success, response = await self.send_command(command)
 
             if not success:
-                self._log(f"❌ Ошибка при получении плана")
+                self._log(f"Ошибка при получении плана")
                 return None
 
             for line in response.split('\n'):
                 line = line.strip()
                 if line.isdigit():
                     plan_id = int(line)
-                    self._log(f"✅ Текущий план: {plan_id}")
+                    self._log(f"Текущий план: {plan_id}")
                     return plan_id
 
-            self._log(f"⚠️ Не удалось определить текущий план")
+            self._log(f"Не удалось определить текущий план")
             return None
 
         except Exception as e:
-            self._log(f"❌ Ошибка при получении плана: {str(e)}")
+            self._log(f"Ошибка при получении плана: {str(e)}")
             return None
 
     async def connect_and_get_lsr_list(self, frequency_plan: Optional[int] = None) -> List[LsrInfo]:
@@ -325,7 +323,7 @@ class BkrConnector:
         try:
             if frequency_plan is not None:
                 if not await self.set_frequency_plan(frequency_plan):
-                    self._log("⚠️ Не удалось установить частотный план, продолжаю...")
+                    self._log("Не удалось установить частотный план, продолжаю...")
                 await asyncio.sleep(2)
 
             await self.stop_phy()
@@ -347,11 +345,11 @@ class BkrConnector:
             return lsr_list
 
         except Exception as e:
-            self._log(f"❌ Ошибка при получении списка ЛСР: {str(e)}")
+            self._log(f"Ошибка при получении списка ЛСР: {str(e)}")
             return []
 
 
     def disconnect(self):
         if self.socket:
             self.socket.close()
-            self._log("🔌 Отключился от БКР")
+            self._log("Отключился от БКР")

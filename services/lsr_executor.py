@@ -44,7 +44,6 @@ class LsrExecutor:
     def restore_iwdg(self, lsr_id: str) -> str:
 
         command = f"exe {lsr_id} eeprom iwdg rst 0"
-        # Формируем: "exe 2561 eeprom iwdg rst 0"
 
         return self.udp.send_command(command)
 
